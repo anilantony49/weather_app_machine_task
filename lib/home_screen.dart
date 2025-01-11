@@ -1,6 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:weather/weather.dart';
+import 'package:weather_app/bloc/weather_bloc_bloc.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,9 +15,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool isLoading = false;
-  String? errorMessage;
-  Weather? currentWeather;
 
   Widget getWeatherIcon(int? code) {
     if (code == null) return Image.asset('assets/8.png');
@@ -25,40 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (code == 800) return Image.asset('assets/6.png');
     if (code > 800 && code <= 804) return Image.asset('assets/7.png');
     return Image.asset('assets/8.png');
-  }
-
-  Future<void> fetchWeather(String city) async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-      currentWeather = null;
-    });
-
-    try {
-      // Simulate fetching weather data (replace this with your API call)
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {
-        currentWeather = Weather(
-          areaName: city,
-          temperature: Temperature(celsius: 25),
-          weatherMain: 'Clear',
-          weatherConditionCode: 800,
-          humidity: 65,
-          pressure: 1013,
-          windSpeed: 5.0,
-          cloudiness: 10,
-          date: DateTime.now(),
-        );
-      });
-    } catch (error) {
-      setState(() {
-        errorMessage = 'Failed to fetch weather data. Try again.';
-      });
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   @override
@@ -139,32 +106,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onSubmitted: (value) {
                     if (value.isNotEmpty) {
-                      fetchWeather(value);
+                      context.read<WeatherBlocBloc>().add(
+                            FetchWeatherByCity(value),
+                          );
                     }
                   },
                 ),
                 const SizedBox(height: 20),
                 // Weather Information
                 Expanded(
-                  child: isLoading
-                      ? const Center(
+                  child: BlocBuilder<WeatherBlocBloc, WeatherBlocState>(
+                    builder: (context, state) {
+                      if (state is WeatherBlocLoading) {
+                        return const Center(
                           child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      : errorMessage != null
-                          ? Center(
-                              child: Text(
-                                errorMessage!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            )
-                          : currentWeather != null
-                              ? _buildWeatherInfo(currentWeather!)
-                              : const Center(
-                                  child: Text(
-                                    'Search for a location to view weather.',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
+                        );
+                      } else if (state is WeatherBlocSuccess) {
+                        return _buildWeatherInfo(state.weather);
+                      } else if (state is WeatherBlocFailure) {
+                        return const Center(
+                          child: Text(
+                            'Failed to fetch weather data. Try again.',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+                      return const Center(
+                        child: Text(
+                          'Search for a location to view weather.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -212,6 +186,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 20),
+        // const Text(
+        //   "Weather Details",
+        //   style: TextStyle(
+        //     color: Colors.white,
+        //     fontSize: 20,
+        //     fontWeight: FontWeight.bold,
+        //   ),
+        // ),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -254,35 +237,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-}
-
-// Mock classes for demonstration
-class Weather {
-  final String areaName;
-  final Temperature? temperature;
-  final String? weatherMain;
-  final int? weatherConditionCode;
-  final int? humidity;
-  final int? pressure;
-  final double? windSpeed;
-  final int? cloudiness;
-  final DateTime? date;
-
-  Weather({
-    required this.areaName,
-    this.temperature,
-    this.weatherMain,
-    this.weatherConditionCode,
-    this.humidity,
-    this.pressure,
-    this.windSpeed,
-    this.cloudiness,
-    this.date,
-  });
-}
-
-class Temperature {
-  final double? celsius;
-
-  Temperature({this.celsius});
 }
