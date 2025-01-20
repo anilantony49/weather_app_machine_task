@@ -2,9 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import 'package:weather/weather.dart';
 import 'package:weather_app/bloc/weather_bloc_bloc.dart';
+import 'package:weather_app/view/screens/home/widgets/build_weather_info_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,18 +14,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-
-  Widget getWeatherIcon(int? code) {
-    if (code == null) return Image.asset('assets/8.png');
-    if (code >= 200 && code < 300) return Image.asset('assets/1.png');
-    if (code >= 300 && code < 400) return Image.asset('assets/2.png');
-    if (code >= 400 && code < 500) return Image.asset('assets/3.png');
-    if (code >= 500 && code < 600) return Image.asset('assets/4.png');
-    if (code >= 600 && code < 700) return Image.asset('assets/5.png');
-    if (code == 800) return Image.asset('assets/6.png');
-    if (code > 800 && code <= 804) return Image.asset('assets/7.png');
-    return Image.asset('assets/8.png');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,45 +30,41 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           // Decorative Background
-          Stack(
-            children: [
-              Align(
-                alignment: const Alignment(-0.8, -0.3),
-                child: Container(
-                  height: 300,
-                  width: 300,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.deepPurple,
-                  ),
-                ),
+          Align(
+            alignment: const Alignment(-0.8, -0.3),
+            child: Container(
+              height: 300,
+              width: 300,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.deepPurple,
               ),
-              Align(
-                alignment: const Alignment(0.8, -0.3),
-                child: Container(
-                  height: 300,
-                  width: 300,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.deepPurple,
-                  ),
-                ),
+            ),
+          ),
+          Align(
+            alignment: const Alignment(0.8, -0.3),
+            child: Container(
+              height: 300,
+              width: 300,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.deepPurple,
               ),
-              Align(
-                alignment: const Alignment(0, -0.8),
-                child: Container(
-                  height: 300,
-                  width: 300,
-                  decoration: const BoxDecoration(color: Color(0xfffffab40)),
-                ),
-              ),
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-                child: Container(
-                  color: Colors.transparent,
-                ),
-              ),
-            ],
+            ),
+          ),
+          Align(
+            alignment: const Alignment(0, -0.8),
+            child: Container(
+              height: 300,
+              width: 300,
+              decoration: const BoxDecoration(color: Color(0xfffffab40)),
+            ),
+          ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+            child: Container(
+              color: Colors.transparent,
+            ),
           ),
           // Content
           Padding(
@@ -122,7 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: CircularProgressIndicator(color: Colors.white),
                         );
                       } else if (state is WeatherBlocSuccess) {
-                        return _buildWeatherInfo(state.weather);
+                        return SingleChildScrollView(
+                            child: buildWeatherInfo(state.weather));
                       } else if (state is WeatherBlocFailure) {
                         return const Center(
                           child: Text(
@@ -145,96 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildWeatherInfo(Weather weather) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '📍${weather.areaName}',
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.w300),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: getWeatherIcon(weather.weatherConditionCode),
-        ),
-        Center(
-          child: Text(
-            '${weather.temperature!.celsius!.round()}°C',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 55, fontWeight: FontWeight.w600),
-          ),
-        ),
-        Center(
-          child: Text(
-            weather.weatherMain!.toUpperCase(),
-            style: const TextStyle(
-                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w500),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Center(
-          child: Text(
-            DateFormat('EEEE dd •').add_jm().format(weather.date!),
-            style: const TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w300),
-          ),
-        ),
-        const SizedBox(height: 20),
-        // const Text(
-        //   "Weather Details",
-        //   style: TextStyle(
-        //     color: Colors.white,
-        //     fontSize: 20,
-        //     fontWeight: FontWeight.bold,
-        //   ),
-        // ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildWeatherDetail("Humidity", "${weather.humidity ?? '--'}%"),
-            _buildWeatherDetail("Pressure", "${weather.pressure ?? '--'} hPa"),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildWeatherDetail(
-                "Wind Speed", "${weather.windSpeed ?? '--'} m/s"),
-            _buildWeatherDetail("Cloudiness", "${weather.cloudiness ?? '--'}%"),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWeatherDetail(String title, String value) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 }
